@@ -3,7 +3,7 @@ export default {
     const _url = new URL(request.url);
     _url.hostname = _url.pathname.startsWith("/gh/")
       ? "cdn.jsdelivr.net"
-      : "www.github.com";
+      : "google.xiaochuzhang.workers.dev";
     const req = new Request(_url, request);
     return fetch(req);
   },
