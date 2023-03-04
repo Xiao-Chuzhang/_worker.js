@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>Colime Browser Page</title>
+  
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=0">
+  <!--<base target="_blank">--><base href="." target="_blank">
+  <style>
+    body {
+      padding: 0 0.5em;
+    }
+    .box {
+      margin-top: 1em;
+    }
+    #txtURL {
+      width: 100%;
+      height: 2em;
+      text-indent: 0.5em;
+      padding: 0.25em 0;
+    }
+    #btnGo {
+      width: 100%;
+      font-size: 1.5em;
+    }
+    #list a {
+      margin: 1em;
+    }
+  </style>
+<style type="text/css">#_copy{align-items:center;background:#4494d5;border-radius:3px;color:#fff;cursor:pointer;display:flex;font-size:13px;height:30px;justify-content:center;position:absolute;width:60px;z-index:1000}#select-tooltip,#sfModal,.modal-backdrop,div[id^=reader-helper]{display:none!important}.modal-open{overflow:auto!important}._sf_adjust_body{padding-right:0!important}.super_copy_btns_div{position:fixed;width:154px;left:10px;top:45%;background:#e7f1ff;border:2px solid #4595d5;font-weight:600;border-radius:2px;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Hiragino Sans GB,Microsoft YaHei,Helvetica Neue,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol;z-index:5000}.super_copy_btns_logo{width:100%;background:#4595d5;text-align:center;font-size:12px;color:#e7f1ff;line-height:30px;height:30px}.super_copy_btns_btn{display:block;width:128px;height:28px;background:#7f5711;border-radius:4px;color:#fff;font-size:12px;border:0;outline:0;margin:8px auto;font-weight:700;cursor:pointer;opacity:.9}.super_copy_btns_btn:hover{opacity:.8}.super_copy_btns_btn:active{opacity:1}</style><link rel="stylesheet" type="text/css" id="clearly-content-css" href="chrome-extension://odfonlkabodgbolnmmkdijkaeggofoop/assets/styles/frame.css"></head>
+
+<body>
+  <div class="box">
+    <input id="txtURL" type="text" value="请输入网址~~" autofocus="">
+  </div>
+  <div class="box">
+    <button id="btnGo">Search</button>
+  </div>
+
+  <script>
+    const PAGE_CONF_SET = 110
+    const PAGE_CONF_GET = 111
+    const SW_CONF_RETURN = 112
+    const SW_CONF_CHANGE = 113
+    const PAGE_READY_CHECK = 200
+    const SW_READY = 201
+
+    const sw = navigator.serviceWorker
+
+
+    sw.addEventListener('message', onSwMsg)
+    sendMsgToSw(PAGE_READY_CHECK)
+
+    btnGo.onclick = function() {
+      const text = txtURL.value.trim()
+      if (text) {
+        const url = './-----' + text
+        open(url, '_blank', 'noopener,noreferrer')
+      }
+    }
+    txtURL.onkeypress = function(e) {
+      if (e.keyCode === 13) {
+        btnGo.onclick()
+      }
+    }
+    txtURL.setSelectionRange(0, txtURL.value.length)
+
+
+    function onSwMsg(e) {
+      const [cmd, msg] = e.data
+
+      switch (cmd) {
+      case SW_CONF_RETURN:
+        conf = msg
+        showConf()
+        break
+
+      case SW_CONF_CHANGE:
+        conf = msg
+        updateSelected()
+        break
+
+      case SW_READY:
+        console.log('sw ready')
+        showIcons()
+        sendMsgToSw(PAGE_CONF_GET)
+        break
+      }
+    }
+
+    function onSwFail(err) {
+      txtURL.value = err
+    }
+
+    selNode.onchange = function() {
+      const item = this.options[this.selectedIndex]
+      const node = item.value
+      conf.node_default = node
+      sendMsgToSw(PAGE_CONF_SET, conf)
+    }
+
+    function sendMsgToSw(cmd, val) {
+      const ctl = sw.controller
+      if (!ctl) {
+        console.log('ctl is null')
+        return
+      }
+      ctl.postMessage([cmd, val])
+    }
+
+    function showIcons() {
+      list.innerHTML = SITE_LIST.map(v => {
+        let [id, url] = v
+        url = url || `www.${id}.com/`
+        return `\
+<a rel="noopener noreferrer" href=./-----https://${url}>\
+<img width=128 height=128 src=__sys__/assets/ico/${id}.png></a>`
+      }).join('')
+    }
+
+    function addNodeItem(id, text) {
+      const optEl = document.createElement('option')
+      optEl.id = '--' + id
+      optEl.text = text
+      optEl.value = id
+      selNode.appendChild(optEl)
+    }
+
+    function updateSelected() {
+      const id = conf.node_default
+      const item = document.getElementById('--' + id)
+      if (item) {
+        item.selected = true
+      } else {
+        console.warn('unknown node:', id)
+      }
+    }
+
+    function showConf() {
+      for (const [id, node] of Object.entries(conf.node_map)) {
+        if (!node.hidden) {
+          addNodeItem(id, node.label)
+        }
+      }
+      updateSelected()
+    }
+  </script>
+</body></html>
